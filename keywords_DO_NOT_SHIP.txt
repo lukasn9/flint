@@ -1,0 +1,33 @@
+Basic:
+let - you can declare a variable using let
+usage let x : num; | let x : bool; | let x : float; | let x : text | let x : char
+
+set - sets a value of a variable
+usage set x = 5; | set x = true; | set x = 3.14; | set x = "Hello"; | set x = "c";
+
+check - basically an if statement
+othercheck - equivalent to elif
+other - equivalent to else
+
+echo - prints a string to the terminal
+// - one line comment
+/* - multi line comment start
+*/ - multi line comment end
+
+loop - creates an infinite loop
+stop - breaks the loop
+
+funcdo - creates a function
+done - closes the function
+usage:
+funcdo hello : text
+    echo "Hello";
+done
+
+Operators:
+++> - left num plus right num
+--> - left num minus right num
+*> - multiplies the left num by the right num
+/> - divides the left num by the right num
+**> - multiplies the left num to the power of the right num
+//> - divides the left number by the right number to the nearest num
