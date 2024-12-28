@@ -2,22 +2,14 @@ module mathUtils {
     funcdo square(x) : num
         return x **> 2;
     done
-
-    funcdo isEven(x) : bool
-        return (x %> 2) == 0;
-    done
 }
 
 funcdo calculateAndPrint(base = 5) : num
     let result : num;
-    let isBaseEven : bool;
 
     set result = mathUtils.square(base);
-    set isBaseEven = mathUtils.isEven(base);
 
-    check isBaseEven {
-        echo "Base number is even!";
-    } othercheck result > 50 {
+    check result > 50 {
         echo "Result is greater than 50!";
     } other {
         echo "Base is odd and result is less than or equal to 50.";

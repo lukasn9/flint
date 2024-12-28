@@ -1,5 +1,5 @@
 # Flint (Programming Language)
-Welcome to the official documentation of the Flint programming language. Flint is an easy to use programming language with a custom compiler made in C. You can find the usage of all keywords available in this language along with examples.
+Welcome to the official documentation of the Flint programming language. Flint is an easy to use programming language with a custom compiler made in C. You can find the usage and syntax of all the keywords available in this language, along with examples.
 
 ---
 
@@ -157,7 +157,7 @@ module moduleName {
     funcdo function1(params) : returnType
         // function body
     done
-    
+
     funcdo function2(params) : returnType
         // function body
     done
