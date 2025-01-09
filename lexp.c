@@ -399,7 +399,7 @@ int main(int argc, char *argv[]) {
         fclose(file);
         return 1;
     }
-
+    
     fread(code, 1, length, file);
     code[length] = '\0';
     fclose(file);
