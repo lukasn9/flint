@@ -13,6 +13,7 @@ typedef struct {
 
 Token tokens[MAX_TOKENS];
 int token_count = 0;
+FILE *output;
 
 void add_token(const char *type, const char *value) {
     if (token_count < MAX_TOKENS) {
@@ -154,221 +155,27 @@ void tokenize(const char *code) {
     }
 }
 
-void parse_statement(int *index);
+void translate_program_to_c();
 
 void parse_program(int *index) {
-    while (*index < token_count) {
-        parse_statement(index);
-    }
+    translate_program_to_c();
 }
 
-void parse_variable_declaration(int *index) {
-    (*index)++;
-    if (*index >= token_count || strcmp(tokens[*index].type, "IDENTIFIER") != 0) {
-        fprintf(stderr, "Error: Expected identifier after 'let'\n");
-        exit(1);
-    }
-    (*index)++;
-    if (*index >= token_count || strcmp(tokens[*index].value, ":") != 0) {
-        fprintf(stderr, "Error: Expected ':' after identifier\n");
-        exit(1);
-    }
-    (*index)++;
-    if (*index >= token_count || strcmp(tokens[*index].type, "IDENTIFIER") != 0) {
-        fprintf(stderr, "Error: Expected type after ':'\n");
-        exit(1);
-    }
-    (*index)++;
-}
-
-void parse_variable_assignment(int *index) {
-    (*index)++;
-    if (*index >= token_count || strcmp(tokens[*index].type, "IDENTIFIER") != 0) {
-        fprintf(stderr, "Error: Expected identifier after 'set'\n");
-        exit(1);
-    }
-    (*index)++;
-    if (*index >= token_count || strcmp(tokens[*index].value, "=") != 0) {
-        fprintf(stderr, "Error: Expected '=' after identifier\n");
-        exit(1);
-    }
-    (*index)++;
-    if (*index >= token_count) {
-        fprintf(stderr, "Error: Expected value after '='\n");
-        exit(1);
-    }
-    (*index)++;
-}
-
-void parse_if_statement(int *index) {
-    (*index)++;
-    if (*index >= token_count) {
-        fprintf(stderr, "Error: Expected condition after 'check'\n");
-        exit(1);
-    }
-    (*index)++;
-    if (*index >= token_count || strcmp(tokens[*index].value, "{") != 0) {
-        fprintf(stderr, "Error: Expected '{' after condition\n");
-        exit(1);
-    }
-    (*index)++;
-    while (*index < token_count && strcmp(tokens[*index].value, "}") != 0) {
-        parse_statement(index);
-    }
-    if (*index >= token_count) {
-        fprintf(stderr, "Error: Unterminated 'check' block\n");
-        exit(1);
-    }
-    (*index)++;
-}
-
-void parse_loop(int *index) {
-    (*index)++;
-    if (*index >= token_count) {
-        fprintf(stderr, "Error: Expected 'range' or '{' after 'loop'\n");
-        exit(1);
-    }
-    if (strcmp(tokens[*index].value, "range") == 0) {
-        (*index)++;
-        if (*index >= token_count || strcmp(tokens[*index].value, "{") != 0) {
-            fprintf(stderr, "Error: Expected '{' after 'range'\n");
-            exit(1);
-        }
-        (*index)++;
-        while (*index < token_count && strcmp(tokens[*index].value, "}") != 0) {
-            parse_statement(index);
-        }
-    } else if (strcmp(tokens[*index].value, "{") == 0) {
-        (*index)++;
-        while (*index < token_count && strcmp(tokens[*index].value, "}") != 0) {
-            parse_statement(index);
-        }
-    } else {
-        fprintf(stderr, "Error: Unexpected token after 'loop'\n");
-        exit(1);
-    }
-    (*index)++;
-}
-
-void parse_function(int *index) {
-    (*index)++;
-    if (*index >= token_count || strcmp(tokens[*index].type, "IDENTIFIER") != 0) {
-        fprintf(stderr, "Error: Expected IDENTIFIER after 'funcdo'");
-        exit(1);
-    }
-    (*index)++;
-    if (*index >= token_count || strcmp(tokens[*index].value, "(") != 0) {
-        fprintf(stderr, "Error: Expected '(' after function name\n");
-        exit(1);
-    }
-    (*index)++;
-    while (*index < token_count && strcmp(tokens[*index].value, ")") != 0) {
-        (*index)++;
-    }
-    if (*index >= token_count) {
-        fprintf(stderr, "Error: Unterminated parameter list\n");
-        exit(1);
-    }
-    (*index)++;
-    if (*index >= token_count || strcmp(tokens[*index].value, ":") != 0) {
-        fprintf(stderr, "Error: Expected ':' after parameter list\n");
-        exit(1);
-    }
-    (*index)++;
-    if (*index >= token_count || strcmp(tokens[*index].type, "IDENTIFIER") != 0) {
-        fprintf(stderr, "Error: Expected return type after ':'\n");
-        exit(1);
-    }
-    (*index)++;
-    if (*index >= token_count || strcmp(tokens[*index].value, "{") != 0) {
-        fprintf(stderr, "Error: Expected '{' to start function body\n");
-        exit(1);
-    }
-    (*index)++;
-    while (*index < token_count && strcmp(tokens[*index].value, "}") != 0) {
-        parse_statement(index);
-    }
-    if (*index >= token_count) {
-        fprintf(stderr, "Error: Unterminated function body\n");
-        exit(1);
-    }
-    (*index)++;
-}
-
-void parse_module(int *index) {
-    (*index)++;
-    if (*index >= token_count || strcmp(tokens[*index].type, "IDENTIFIER") != 0) {
-        fprintf(stderr, "Error: Expected module name after 'module'\n");
-        exit(1);
-    }
-    (*index)++;
-    if (*index >= token_count || strcmp(tokens[*index].value, "{") != 0) {
-        fprintf(stderr, "Error: Expected '{' to start module body\n");
-        exit(1);
-    }
-    (*index)++;
-    while (*index < token_count && strcmp(tokens[*index].value, "}") != 0) {
-        if (strcmp(tokens[*index].value, "funcdo") == 0) {
-            parse_function(index);
-        } else {
-            fprintf(stderr, "Error: Only functions are allowed inside modules\n");
-            exit(1);
+void translate_program_to_c() {
+    fprintf(output, "#include <stdio.h>\n#include <stdlib.h>\n\nint main() {\n");
+    for (int i = 0; i < token_count; i++) {
+        if (strcmp(tokens[i].type, "KEYWORD") == 0) {
+            if (strcmp(tokens[i].value, "echo") == 0) {
+                i++;
+                fprintf(output, "printf(\"%%s\\n\", %s);\n", tokens[i].value);
+            } else if (strcmp(tokens[i].value, "let") == 0) {
+                fprintf(output, "int %s;\n", tokens[++i].value);
+            } else if (strcmp(tokens[i].value, "set") == 0) {
+                fprintf(output, "%s = %s;\n", tokens[++i].value, tokens[++i + 1].value);
+            }
         }
     }
-    if (*index >= token_count) {
-        fprintf(stderr, "Error: Unterminated module body\n");
-        exit(1);
-    }
-    (*index)++;
-}
-
-void parse_echo(int *index) {
-    (*index)++;
-    if (*index >= token_count) {
-        fprintf(stderr, "Error: Expected value after 'echo'\n");
-        exit(1);
-    }
-    (*index)++;
-}
-
-void parse_return(int *index) {
-    (*index)++;
-    if (*index >= token_count) {
-        fprintf(stderr, "Error: Expected value after 'return'\n");
-        exit(1);
-    }
-    (*index)++;
-}
-
-void parse_stop(int *index) {
-    (*index)++;
-}
-
-void parse_statement(int *index) {
-    if (*index >= token_count) return;
-
-    if (strcmp(tokens[*index].value, "let") == 0) {
-        parse_variable_declaration(index);
-    } else if (strcmp(tokens[*index].value, "set") == 0) {
-        parse_variable_assignment(index);
-    } else if (strcmp(tokens[*index].value, "check") == 0) {
-        parse_if_statement(index);
-    } else if (strcmp(tokens[*index].value, "loop") == 0) {
-        parse_loop(index);
-    } else if (strcmp(tokens[*index].value, "funcdo") == 0) {
-        parse_function(index);
-    } else if (strcmp(tokens[*index].value, "module") == 0) {
-        parse_module(index);
-    } else if (strcmp(tokens[*index].value, "echo") == 0) {
-        parse_echo(index);
-    } else if (strcmp(tokens[*index].value, "return") == 0) {
-        parse_return(index);
-    } else if (strcmp(tokens[*index].value, "stop") == 0) {
-        parse_stop(index);
-    } else {
-        fprintf(stderr, "Error: Unsupported statement '%s'\n", tokens[*index].value);
-        exit(1);
-    }
+    fprintf(output, "return 0;\n}");
 }
 
 int main(int argc, char *argv[]) {
@@ -399,7 +206,7 @@ int main(int argc, char *argv[]) {
         fclose(file);
         return 1;
     }
-    
+
     fread(code, 1, length, file);
     code[length] = '\0';
     fclose(file);
@@ -407,9 +214,16 @@ int main(int argc, char *argv[]) {
     tokenize(code);
     free(code);
 
+    output = fopen("translated.c", "w");
+    if (!output) {
+        fprintf(stderr, "Error: Could not create output file\n");
+        return 1;
+    }
+
     int index = 0;
     parse_program(&index);
 
-    printf("Parsing completed successfully.\n");
+    fclose(output);
+    printf("Translation completed successfully. Output: translated.c\n");
     return 0;
 }
