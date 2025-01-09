@@ -371,11 +371,45 @@ void parse_statement(int *index) {
     }
 }
 
-int main() {
-    const char *code = "";
+int main(int argc, char *argv[]) {
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s <filename.fl>\n", argv[0]);
+        return 1;
+    }
+
+    const char *filename = argv[1];
+    if (strlen(filename) < 4 || strcmp(filename + strlen(filename) - 3, ".fl") != 0) {
+        fprintf(stderr, "Error: File extension must be .fl\n");
+        return 1;
+    }
+
+    FILE *file = fopen(filename, "r");
+    if (!file) {
+        fprintf(stderr, "Error: Could not open file %s\n", filename);
+        return 1;
+    }
+
+    fseek(file, 0, SEEK_END);
+    long length = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char *code = (char *)malloc(length + 1);
+    if (!code) {
+        fprintf(stderr, "Error: Memory allocation failed\n");
+        fclose(file);
+        return 1;
+    }
+
+    fread(code, 1, length, file);
+    code[length] = '\0';
+    fclose(file);
+
     tokenize(code);
+    free(code);
+
     int index = 0;
     parse_program(&index);
+
     printf("Parsing completed successfully.\n");
     return 0;
 }
