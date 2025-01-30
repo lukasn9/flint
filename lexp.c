@@ -13,7 +13,7 @@ typedef struct {
 
 Token tokens[MAX_TOKENS];
 int token_count = 0;
-FILE *output;
+FILE *output = NULL;
 
 void add_token(const char *type, const char *value) {
     if (token_count < MAX_TOKENS) {
@@ -82,34 +82,6 @@ void tokenize(const char *code) {
             continue;
         }
 
-        if (code[i] == '/' && code[i + 1] == '/') {
-            while (code[i] != '\n' && code[i] != '\0') {
-                i++;
-                column++;
-            }
-            continue;
-        }
-
-        if (code[i] == '/' && code[i + 1] == '*') {
-            i += 2;
-            column += 2;
-            while (!(code[i] == '*' && code[i + 1] == '/')) {
-                if (code[i] == '\0') {
-                    handle_error("Unterminated comment", line, column);
-                }
-                if (code[i] == '\n') {
-                    line++;
-                    column = 1;
-                } else {
-                    column++;
-                }
-                i++;
-            }
-            i += 2;
-            column += 2;
-            continue;
-        }
-
         if (code[i] == '"') {
             char buffer[MAX_TOKEN_LENGTH];
             int j = 0;
@@ -131,21 +103,12 @@ void tokenize(const char *code) {
 
         if (strchr("=+->*/,{}:;()[]?%", code[i])) {
             char buffer[3] = {code[i], '\0', '\0'};
-
             if ((code[i] == '+' || code[i] == '-' || code[i] == '*' || code[i] == '/' || code[i] == '%') && code[i + 1] == '>') {
                 buffer[1] = '>';
                 i++;
             }
-
             add_token("OPERATOR", buffer);
             i++;
-            continue;
-        }
-
-        if (code[i] == '.') {
-            add_token("DOT", ".");
-            i++;
-            column++;
             continue;
         }
 
@@ -155,13 +118,17 @@ void tokenize(const char *code) {
     }
 }
 
-void translate_program_to_c();
+void translate_program_to_c(const char *debug_flag) {
+    if (debug_flag && strcmp(debug_flag, "debug") == 0) {
+        output = fopen("translated.c", "w");
+        if (!output) {
+            fprintf(stderr, "Error: Could not create output file\n");
+            exit(1);
+        }
+    } else {
+        output = stdout;
+    }
 
-void parse_program(int *index) {
-    translate_program_to_c();
-}
-
-void translate_program_to_c() {
     fprintf(output, "#include <stdio.h>\n#include <stdlib.h>\n\nint main() {\n");
     for (int i = 0; i < token_count; i++) {
         if (strcmp(tokens[i].type, "KEYWORD") == 0) {
@@ -176,23 +143,30 @@ void translate_program_to_c() {
         }
     }
     fprintf(output, "return 0;\n}");
+
+    if (output != stdout) {
+        fclose(output);
+        printf("Translation completed successfully. Output: translated.c\n");
+
+        printf("Compiling and running translated C program...\n");
+        int compile_status = system("gcc -o translated translated.c");
+        if (compile_status == 0) {
+            system("./translated");
+        } else {
+            fprintf(stderr, "Error: Compilation failed\n");
+        }
+    }
 }
 
 int main(int argc, char *argv[]) {
     if (argc < 2) {
-        fprintf(stderr, "Usage: %s <filename.fl>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <filename.fl> [debug]\n", argv[0]);
         return 1;
     }
 
-    const char *filename = argv[1];
-    if (strlen(filename) < 4 || strcmp(filename + strlen(filename) - 3, ".fl") != 0) {
-        fprintf(stderr, "Error: File extension must be .fl\n");
-        return 1;
-    }
-
-    FILE *file = fopen(filename, "r");
+    FILE *file = fopen(argv[1], "r");
     if (!file) {
-        fprintf(stderr, "Error: Could not open file %s\n", filename);
+        fprintf(stderr, "Error: Could not open file %s\n", argv[1]);
         return 1;
     }
 
@@ -201,12 +175,6 @@ int main(int argc, char *argv[]) {
     fseek(file, 0, SEEK_SET);
 
     char *code = (char *)malloc(length + 1);
-    if (!code) {
-        fprintf(stderr, "Error: Memory allocation failed\n");
-        fclose(file);
-        return 1;
-    }
-
     fread(code, 1, length, file);
     code[length] = '\0';
     fclose(file);
@@ -214,16 +182,7 @@ int main(int argc, char *argv[]) {
     tokenize(code);
     free(code);
 
-    output = fopen("translated.c", "w");
-    if (!output) {
-        fprintf(stderr, "Error: Could not create output file\n");
-        return 1;
-    }
+    translate_program_to_c(argc > 2 ? argv[2] : NULL);
 
-    int index = 0;
-    parse_program(&index);
-
-    fclose(output);
-    printf("Translation completed successfully. Output: translated.c\n");
     return 0;
 }

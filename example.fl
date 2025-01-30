@@ -36,7 +36,7 @@ loop range 5 -> 1 {
 }
 
 run {
-    set number = 10 /> 0;  // Safe division
+    set number = 10 /> 0;
 } catch {
     echo "Division error occurred!";
 }
